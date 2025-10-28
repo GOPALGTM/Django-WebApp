@@ -1,7 +1,6 @@
 # Django-WebApp       <img alt="GitHub" src="https://img.shields.io/github/license/smahesh29/Django-WebApp">
 
-
-This project was done by me as a assignment for an internship.
+A modern Django web application deployed on AWS EKS with complete CI/CD pipeline, container security scanning, and Kubernetes orchestration.
 
 <h2>Assignment Problem Statement:</h2>
 
@@ -33,6 +32,17 @@ This project was done by me as a assignment for an internship.
     <li>Bootstrap</li>
     <li>JavaScript</li>
 </ul>
+
+<h2>DevOps Technologies:</h2>
+<ul>
+    <li>Docker - Containerization</li>
+    <li>Kubernetes (EKS) - Container orchestration</li>
+    <li>AWS ECR - Container registry</li>
+    <li>GitHub Actions - CI/CD pipeline</li>
+    <li>Terraform - Infrastructure as Code</li>
+    <li>Trivy - Container security scanning</li>
+    <li>NGINX Ingress Controller - Load balancing</li>
+</ul>
     
 <h2>Additional Python Modules Required:</h2>
 <ul>
@@ -45,15 +55,33 @@ This project was done by me as a assignment for an internship.
 
 <b>The Secret_Key required for the execution and debugging of project is not removed from the project code. So you can use the project as your college mini-project or by using the project code you can build your own project.</b>
 
-<h2>Usage :</h2>
+<h2>Quick Start:</h2>
 
-    python django_web_app/manage.py makemigrations
+### Local Development
 
-    python django_web_app/manage.py migrate
+```bash
+# Migrations
+python django_web_app/manage.py makemigrations
+python django_web_app/manage.py migrate
 
-    python django_web_app/manage.py runserver
-    
-   In your web browser enter the address : http://localhost:8000 or http://127.0.0.1:8000/
+# Run server
+python django_web_app/manage.py runserver
+```
+
+Visit: http://localhost:8000
+
+### AWS Deployment (CI/CD)
+
+The application automatically deploys to AWS EKS when you push to the `main` branch via GitHub Actions pipeline.
+
+**Pipeline includes:**
+- ✅ Automated testing and linting
+- ✅ Docker image build with timestamp tagging
+- ✅ Security scanning with Trivy
+- ✅ Push to AWS ECR
+- ✅ Kubernetes deployment update
+
+See [docs/setup.md](docs/setup.md) and [docs/deployment.md](docs/deployment.md) for detailed instructions.
 
 # Working:
 [![Watch the video](https://img.youtube.com/vi/qIK-vfTig6c/0.jpg)](https://youtu.be/qIK-vfTig6c)
@@ -66,4 +94,3 @@ This project was done by me as a assignment for an internship.
 <img src="Screenshots/New Tab - Google Chrome 03-12-2019 19_16_14.png" height="400" width="800">
 <img src="Screenshots/Django WebApp - Google Chrome 04-12-2019 13_41_50.png" height="400" width="800">
 <img src="Screenshots/Django WebApp - Google Chrome 03-12-2019 20_48_45.png" height="400" width="800">
-

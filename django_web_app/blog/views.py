@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.models import User
 from django.views.generic import (
@@ -13,8 +13,45 @@ from .models import Post
 import operator
 from django.urls import reverse_lazy
 from django.contrib.staticfiles.views import serve
+from django.db import connection
+from django.core.cache import cache
+import time
 
 from django.db.models import Q
+
+
+def health_check(request):
+    """Health check endpoint for Kubernetes liveness and readiness probes"""
+    try:
+        # Check database connectivity
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        
+        # Check cache
+        cache.set('health_check', 'ok', 30)
+        cache_status = cache.get('health_check') == 'ok'
+        
+        if cache_status:
+            return JsonResponse({
+                'status': 'healthy',
+                'timestamp': time.time(),
+                'database': 'ok',
+                'cache': 'ok'
+            }, status=200)
+        else:
+            return JsonResponse({
+                'status': 'unhealthy',
+                'timestamp': time.time(),
+                'database': 'ok',
+                'cache': 'error'
+            }, status=503)
+            
+    except Exception as e:
+        return JsonResponse({
+            'status': 'unhealthy',
+            'timestamp': time.time(),
+            'error': str(e)
+        }, status=503)
 
 
 def home(request):

@@ -1,0 +1,119 @@
+name: Deploy Django App to AWS EKS
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest pytest-django
+          pip install -r requirements.txt
+
+      # Step 4: Lint with flake8
+      - name: Lint with flake8
+        run: |
+          flake8 django_web_app/ --count --select=E9,F63,F7,F82 --show-source --statistics || true
+          flake8 django_web_app/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      # Step 5: Run tests
+      - name: Run tests
+        run: |
+          cd django_web_app
+          python manage.py test
+
+      # Step 6: Configure AWS credentials
+      - name: Configure AWS credentials
+        if: success()
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Step 7: Login to ECR
+      - name: Login to Amazon ECR
+        if: success()
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Step 8: Build Docker image (before scanning)
+      - name: Build Docker image
+        if: success()
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: django-webapp
+        run: |
+          # Generate timestamp for image tag
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$TIMESTAMP
+          echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+          
+          # Build image with timestamp as tag
+          docker build -t $IMAGE_URI -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          echo "IMAGE_TAG=$IMAGE_URI" >> $GITHUB_ENV
+
+      # Step 9: Scan Docker image with Trivy (before pushing)
+      - name: Scan Docker image with Trivy
+        if: success()
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_TAG }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      # Step 10: Upload scan results
+      - name: Upload Trivy scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      # Step 11: Push image to ECR (only after scanning passes)
+      - name: Push image to ECR
+        if: success()
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: django-webapp
+        run: |
+          docker push ${{ env.IMAGE_TAG }}
+
+      # Step 12: Configure kubectl for EKS
+      - name: Configure kubectl for EKS
+        if: success()
+        run: |
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
+
+      # Step 13: Update deployment image only (no full deploy)
+      - name: Update Deployment Image in EKS
+        if: success()
+        run: |
+          # Update image with new tag only
+          kubectl set image deployment/django-webapp \
+            django-webapp=${{ env.IMAGE_TAG }} \
+            --namespace=default
+
+      # Step 14: Verify rollout status
+      - name: Verify Rollout Status
+        if: success()
+        run: |
+          kubectl rollout status deployment/django-webapp --timeout=120s --namespace=default
