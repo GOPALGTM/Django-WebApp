@@ -1,1 +1,3 @@
-django_web_app/users/tests.py
+from django.test import TestCase
+
+# Create your tests here.
