@@ -42,7 +42,6 @@ aws eks update-kubeconfig --region us-east-1 --name dev-cluster
 - Managed node group (t3a.medium, 2-4 nodes)
 - Core addons (CoreDNS, VPC CNI, kube-proxy)
 - IAM roles and policies
-- Auto-scaling configuration
 
 ## Configuration
 
@@ -58,11 +57,9 @@ All configuration values are defined in `terraform_dev.tfvars`:
 
 - Single state file: `state/dev/infrastructure.tfstate`
 - S3 backend: `task-infra-devops` bucket
-- State locking: Recommended with DynamoDB
 
 ## Prerequisites
 
 1. AWS CLI configured (`aws configure`)
 2. Terraform installed (>= 1.0)
 3. S3 bucket `task-infra-devops` exists
-4. Proper IAM permissions
